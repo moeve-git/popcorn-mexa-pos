@@ -1,26 +1,126 @@
 @import "tailwindcss";
 
+/* Paleta basada en el logo de Pop Corn Mexa */
+@theme {
+  --color-cream-50: #fffbf3;
+  --color-cream-100: #fff6e6;
+  --color-cream-200: #fdf2da;
+  --color-cream-300: #fdeac2;
+  --color-cream-400: #fad49e;
+
+  --color-butter-200: #fce58a;
+  --color-butter-300: #fbd651;
+  --color-corn-400: #f9bb3b;
+  --color-corn-500: #eb921a;
+  --color-corn-600: #c8760c;
+
+  --color-chili-400: #fb5a4f;
+  --color-chili-500: #f33031;
+  --color-chili-600: #d9221f;
+  --color-chili-700: #b21a17;
+
+  --color-cocoa-300: #ad7f5a;
+  --color-cocoa-400: #874b1f;
+  --color-cocoa-500: #692010;
+  --color-cocoa-600: #501006;
+  --color-cocoa-700: #3a0803;
+
+  --color-blush-300: #fb7a86;
+  --color-blush-400: #e73967;
+  --color-lilac-400: #b779cf;
+
+  --color-line: #f1dcb6;
+
+  --font-display: var(--font-fredoka), ui-rounded, system-ui, sans-serif;
+  --font-sans: var(--font-nunito), ui-rounded, system-ui, sans-serif;
+
+  --shadow-pop: 0 3px 0 0 #3a080320, 0 8px 24px -10px #69201038;
+  --shadow-press: 0 1px 0 0 #3a080320;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  background: var(--color-cream-100);
+  color: var(--color-cocoa-700);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+}
+
+/* Botones táctiles: sin zoom por doble tap y sin selección de texto */
+button,
+[role="button"] {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+input,
+select,
+textarea {
+  font-size: 16px; /* evita el zoom automático en iPad/iPhone */
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* Fondo de rayos como el logo */
+.sunburst {
+  background:
+    radial-gradient(circle at 50% 120%, #fff6e600 0%, var(--color-cream-100) 70%),
+    repeating-conic-gradient(from 0deg at 50% 110%, #fce58a 0deg 10deg, #fbd651 10deg 20deg);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+  }
+}
+
+@keyframes pop {
+  from {
+    transform: scale(0.96) translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #corte,
+  #corte * {
+    visibility: visible;
+  }
+  #corte {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+  }
 }
