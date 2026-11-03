@@ -14,6 +14,7 @@ export type Product = {
   price: number;
   cost: number | null;
   track_stock: boolean;
+  allow_oversell: boolean;
   stock: number;
   low_stock_alert: number;
   emoji: string;

@@ -15,7 +15,7 @@ Punto de venta para Pop Corn Mexa, pensado para usarse en **iPad**. También fun
 ## 1. Crear la base de datos en Supabase
 
 1. Crea un proyecto en [supabase.com](https://supabase.com).
-2. Entra a **SQL Editor**, pega el contenido de [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) y presiona **Run**.
+2. Entra a **SQL Editor** y ejecuta, en orden, el contenido de cada archivo de [`supabase/migrations/`](supabase/migrations/) (`0001_init.sql` y después `0002_allow_oversell.sql`) con **Run**.
 3. (Opcional) Si quieres productos de ejemplo, pega y ejecuta [`supabase/seed.sql`](supabase/seed.sql).
 
 ## 2. Variables de entorno

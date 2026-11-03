@@ -612,6 +612,11 @@ begin
 end;
 $$;
 
+-- Permisos para el servidor (service_role)
+grant usage on schema public to service_role;
+grant select, insert, update, delete on all tables in schema public to service_role;
+grant usage, select on all sequences in schema public to service_role;
+
 -- Permisos de ejecución: sólo el servidor (service_role)
 revoke all on function public.current_session_id() from public, anon, authenticated;
 revoke all on function public.create_sale(jsonb, public.payment_method, numeric) from public, anon, authenticated;

@@ -24,3 +24,8 @@ from (values
 ) as p(name, category, price, cost, stock, emoji, color, sort_order)
 join public.categories c on c.name = p.category
 where not exists (select 1 from public.products);
+
+-- Las palomitas se pueden vender aunque no haya stock (requiere 0002_allow_oversell.sql)
+update public.products p set allow_oversell = true
+from public.categories c
+where c.id = p.category_id and c.name = 'Palomitas';

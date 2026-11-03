@@ -118,6 +118,9 @@ export function ProductsClient({ products, categories }: { products: Product[]; 
                         {isLow(p) && <AlertTriangle className="size-3.5" />}
                         {p.stock} en stock
                       </span>
+                    ) : null}
+                    {p.track_stock && p.allow_oversell ? (
+                      <span className="rounded-full px-2 py-0.5 bg-butter-200 text-cocoa-500">Se vende sin stock</span>
                     ) : (
                       <span className="rounded-full px-2 py-0.5 bg-cream-200">Sin control de stock</span>
                     )}

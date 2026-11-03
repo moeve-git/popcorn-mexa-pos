@@ -10,6 +10,7 @@ export type ProductInput = {
   price: number;
   cost: number | null;
   track_stock: boolean;
+  allow_oversell: boolean;
   stock: number;
   low_stock_alert: number;
   emoji: string;
@@ -28,7 +29,8 @@ function validate(p: ProductInput): string | null {
   if (!p.name.trim()) return "El nombre es obligatorio";
   if (!(p.price >= 0)) return "Precio inválido";
   if (p.cost !== null && !(p.cost >= 0)) return "Costo inválido";
-  if (!Number.isInteger(p.stock) || p.stock < 0) return "El stock debe ser un número entero ≥ 0";
+  if (!Number.isInteger(p.stock)) return "El stock debe ser un número entero";
+  if (p.stock < 0 && !p.allow_oversell) return "El stock no puede ser negativo";
   return null;
 }
 

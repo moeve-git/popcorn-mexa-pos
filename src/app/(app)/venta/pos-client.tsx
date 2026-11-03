@@ -52,7 +52,7 @@ export function PosClient({
   const count = lines.reduce((s, l) => s + l.quantity, 0);
 
   function available(p: Product) {
-    return p.track_stock ? p.stock - (cart[p.id]?.quantity ?? 0) : Infinity;
+    return p.track_stock && !p.allow_oversell ? p.stock - (cart[p.id]?.quantity ?? 0) : Infinity;
   }
 
   function add(p: Product) {
@@ -69,7 +69,7 @@ export function PosClient({
       const line = c[id];
       if (!line) return c;
       const q = line.quantity + delta;
-      if (delta > 0 && line.product.track_stock && q > line.product.stock) return c;
+      if (delta > 0 && line.product.track_stock && !line.product.allow_oversell && q > line.product.stock) return c;
       const next = { ...c };
       if (q <= 0) delete next[id];
       else next[id] = { ...line, quantity: q };
@@ -167,14 +167,15 @@ export function PosClient({
             <div className="grid grid-cols-[repeat(auto-fill,minmax(132px,1fr))] lg:grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3">
               {visible.map((p) => {
                 const inCart = cart[p.id]?.quantity ?? 0;
-                const left = available(p);
-                const out = p.track_stock && p.stock <= 0;
-                const low = p.track_stock && !out && p.stock <= p.low_stock_alert;
+                const left = p.stock - inCart;
+                const blocked = p.track_stock && !p.allow_oversell && p.stock <= 0;
+                const out = p.track_stock && left <= 0;
+                const low = p.track_stock && !out && left <= p.low_stock_alert;
                 return (
                   <button
                     key={p.id}
                     onClick={() => add(p)}
-                    disabled={out || !session}
+                    disabled={blocked || !session}
                     className="relative aspect-[4/5] rounded-3xl border-[3px] border-cocoa-700 bg-white p-2 flex flex-col text-left shadow-[0_4px_0_0_#3a0803] active:translate-y-[3px] active:shadow-[0_1px_0_0_#3a0803] transition disabled:opacity-50 disabled:active:translate-y-0"
                   >
                     <div
@@ -200,13 +201,15 @@ export function PosClient({
                       <span
                         className={`absolute top-3 left-3 rounded-full px-2 py-0.5 text-xs font-extrabold ${
                           out
-                            ? "bg-cocoa-700 text-white"
+                            ? p.allow_oversell
+                              ? "bg-corn-500 text-white"
+                              : "bg-cocoa-700 text-white"
                             : low
                               ? "bg-chili-500 text-white"
                               : "bg-white/85 text-cocoa-500"
                         }`}
                       >
-                        {out ? "Agotado" : `${left} disp.`}
+                        {out ? (p.allow_oversell ? "Sin stock" : "Agotado") : `${left} disp.`}
                       </span>
                     )}
                   </button>

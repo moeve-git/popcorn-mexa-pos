@@ -32,6 +32,7 @@ export function ProductForm({
     price: Number(product?.price ?? 0),
     cost: product?.cost != null ? Number(product.cost) : null,
     track_stock: product?.track_stock ?? true,
+    allow_oversell: product?.allow_oversell ?? false,
     stock: product?.stock ?? 0,
     low_stock_alert: product?.low_stock_alert ?? 5,
     emoji: product?.emoji ?? "🍿",
@@ -174,6 +175,18 @@ export function ProductForm({
 
         <div className="rounded-2xl bg-cream-200/70 p-3 space-y-3">
           <Toggle checked={form.track_stock} onChange={(v) => set("track_stock", v)} label="Controlar inventario" />
+          {form.track_stock && (
+            <Toggle
+              checked={form.allow_oversell}
+              onChange={(v) => set("allow_oversell", v)}
+              label="Vender aunque no haya stock"
+            />
+          )}
+          {form.track_stock && form.allow_oversell && (
+            <p className="text-xs font-semibold text-cocoa-400 -mt-1">
+              Ideal para palomitas: nunca se bloquea la venta. El stock puede quedar en negativo y se compensa al reabastecer.
+            </p>
+          )}
           {form.track_stock && (
             <div className="grid grid-cols-2 gap-3">
               <Field label={product ? "Stock actual" : "Stock inicial"}>
