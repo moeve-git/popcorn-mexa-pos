@@ -2,12 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Minus, Plus, Search, ShoppingBasket, Trash2, Wallet, X } from "lucide-react";
+import { Minus, Pencil, Plus, Search, ShoppingBasket, Star, Trash2, Wallet, X } from "lucide-react";
 import type { Category, Product } from "@/lib/types";
 import { formatMoney, formatTime, SHIFT_LABEL } from "@/lib/format";
 import { Button, Modal } from "@/components/ui";
 import { ProductVisual } from "@/components/product-tile";
 import { OpenSessionForm } from "@/components/open-session-form";
+import { setFavorite } from "../productos/actions";
 import { Checkout } from "./checkout";
 
 type CartLine = { product: Product; quantity: number };
@@ -23,7 +24,10 @@ export function PosClient({
 }) {
   const router = useRouter();
   const [cart, setCart] = useState<Record<string, CartLine>>({});
-  const [category, setCategory] = useState<string>("all");
+  const [category, setCategory] = useState<string>(() =>
+    products.some((p) => p.is_favorite) ? "fav" : "all",
+  );
+  const [pickFavs, setPickFavs] = useState(false);
   const [query, setQuery] = useState("");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [cartSheet, setCartSheet] = useState(false);
@@ -34,18 +38,23 @@ export function PosClient({
     [categories, products],
   );
 
-  const visible = useMemo(() => {
-    const q = query.trim().toLowerCase();
+  const sorted = useMemo(() => {
     const catOrder = new Map(categories.map((c, i) => [c.id, i]));
     const rank = (p: Product) => (p.category_id ? (catOrder.get(p.category_id) ?? 999) : 999);
-    return [...products]
-      .sort((a, b) => rank(a) - rank(b) || a.sort_order - b.sort_order || a.name.localeCompare(b.name))
-      .filter(
-      (p) =>
-        (category === "all" || p.category_id === category) &&
-        (!q || p.name.toLowerCase().includes(q)),
+    return [...products].sort(
+      (a, b) => rank(a) - rank(b) || a.sort_order - b.sort_order || a.name.localeCompare(b.name),
     );
-  }, [products, categories, category, query]);
+  }, [products, categories]);
+
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return sorted.filter((p) => {
+      // Al buscar, se busca en todos los productos sin importar la pestaña
+      if (q) return p.name.toLowerCase().includes(q);
+      if (category === "fav") return p.is_favorite;
+      return category === "all" || p.category_id === category;
+    });
+  }, [sorted, category, query]);
 
   const lines = Object.values(cart);
   const total = lines.reduce((s, l) => s + Number(l.product.price) * l.quantity, 0);
@@ -132,6 +141,11 @@ export function PosClient({
             )}
           </div>
           <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4">
+            <Chip active={category === "fav"} onClick={() => setCategory("fav")}>
+              <span className="inline-flex items-center gap-1.5">
+                <Star className="size-4" fill="currentColor" /> Favoritos
+              </span>
+            </Chip>
             <Chip active={category === "all"} onClick={() => setCategory("all")}>
               Todo
             </Chip>
@@ -157,7 +171,26 @@ export function PosClient({
             </div>
           )}
 
-          {visible.length === 0 ? (
+          {category === "fav" && !query && visible.length > 0 && (
+            <div className="flex justify-end mb-3">
+              <Button size="sm" variant="secondary" onClick={() => setPickFavs(true)}>
+                <Pencil className="size-4" /> Elegir favoritos
+              </Button>
+            </div>
+          )}
+
+          {category === "fav" && !query && visible.length === 0 ? (
+            <div className="text-center py-14 px-6">
+              <Star className="size-12 mx-auto text-corn-400" fill="currentColor" />
+              <p className="font-display text-xl font-semibold mt-2">Aún no tienes favoritos</p>
+              <p className="font-semibold text-cocoa-400 mb-4">
+                Elige lo que más vendes para tenerlo siempre a la mano.
+              </p>
+              <Button onClick={() => setPickFavs(true)}>
+                <Star className="size-5" /> Elegir favoritos
+              </Button>
+            </div>
+          ) : visible.length === 0 ? (
             <div className="text-center py-16 text-cocoa-300 font-semibold">
               {products.length === 0
                 ? "Aún no tienes productos. Agrégalos en la sección Productos."
@@ -249,6 +282,10 @@ export function PosClient({
         </div>
       )}
 
+      <Modal open={pickFavs} onClose={() => { setPickFavs(false); router.refresh(); }} title="Elegir favoritos" size="lg">
+        {pickFavs && <FavoritesPicker products={sorted} />}
+      </Modal>
+
       <Checkout
         open={checkoutOpen}
         onClose={() => setCheckoutOpen(false)}
@@ -256,6 +293,68 @@ export function PosClient({
         items={lines.map((l) => ({ product_id: l.product.id, quantity: l.quantity }))}
         onSold={onSold}
       />
+    </div>
+  );
+}
+
+function FavoritesPicker({ products }: { products: Product[] }) {
+  const [favs, setFavs] = useState(() => new Set(products.filter((p) => p.is_favorite).map((p) => p.id)));
+  const [error, setError] = useState<string | null>(null);
+
+  async function toggle(p: Product) {
+    const next = !favs.has(p.id);
+    const apply = (on: boolean) =>
+      setFavs((s) => {
+        const n = new Set(s);
+        if (on) n.add(p.id);
+        else n.delete(p.id);
+        return n;
+      });
+    apply(next);
+    setError(null);
+    const res = await setFavorite(p.id, next);
+    if (!res.ok) {
+      apply(!next);
+      setError(res.error);
+    }
+  }
+
+  return (
+    <div>
+      <p className="font-semibold text-cocoa-400 mb-3">
+        Toca los productos que más vendes. Llevas <b className="text-cocoa-700">{favs.size}</b> favoritos.
+      </p>
+      {error && <p className="mb-3 font-bold text-chili-600">{error}</p>}
+      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
+        {products.map((p) => {
+          const on = favs.has(p.id);
+          return (
+            <button
+              key={p.id}
+              onClick={() => toggle(p)}
+              aria-pressed={on}
+              className={`relative rounded-2xl border-[3px] p-2 text-left transition ${
+                on ? "border-cocoa-700 bg-butter-200" : "border-line bg-white"
+              }`}
+            >
+              <div
+                className="aspect-square rounded-xl grid place-items-center overflow-hidden"
+                style={{ backgroundColor: `${p.color}33` }}
+              >
+                <ProductVisual product={p} className="size-full text-4xl" />
+              </div>
+              <p className="mt-1 text-sm font-bold leading-tight line-clamp-2">{p.name}</p>
+              <span
+                className={`absolute top-1 right-1 size-8 rounded-full grid place-items-center ${
+                  on ? "bg-corn-400 text-cocoa-700" : "bg-white/90 text-cocoa-300"
+                }`}
+              >
+                <Star className="size-5" fill={on ? "currentColor" : "none"} />
+              </span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -2,12 +2,12 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Pencil, Plus, PackagePlus, Tags, Trash2 } from "lucide-react";
+import { AlertTriangle, Pencil, Plus, PackagePlus, Star, Tags, Trash2 } from "lucide-react";
 import type { Category, Product } from "@/lib/types";
 import { formatMoney } from "@/lib/format";
 import { Alert, Button, Card, Field, inputClass, Modal, PageHeader } from "@/components/ui";
 import { ProductVisual } from "@/components/product-tile";
-import { adjustStock, deleteCategory, saveCategory } from "./actions";
+import { adjustStock, deleteCategory, saveCategory, setFavorite } from "./actions";
 import { ProductForm } from "./product-form";
 
 type Filter = "all" | "low" | "inactive" | string;
@@ -30,6 +30,7 @@ export function ProductsClient({ products, categories }: { products: Product[]; 
     if (filter === "all") return p.active;
     if (filter === "low") return p.active && isLow(p);
     if (filter === "inactive") return !p.active;
+    if (filter === "fav") return p.active && p.is_favorite;
     return p.active && p.category_id === filter;
   });
 
@@ -64,6 +65,9 @@ export function ProductsClient({ products, categories }: { products: Product[]; 
       <div className="flex gap-2 overflow-x-auto no-scrollbar mb-4 -mx-4 px-4 md:mx-0 md:px-0">
         <FilterChip active={filter === "all"} onClick={() => setFilter("all")}>
           Todos
+        </FilterChip>
+        <FilterChip active={filter === "fav"} onClick={() => setFilter("fav")}>
+          ⭐ Favoritos
         </FilterChip>
         {categories.map((c) => (
           <FilterChip key={c.id} active={filter === c.id} onClick={() => setFilter(c.id)}>
@@ -119,9 +123,10 @@ export function ProductsClient({ products, categories }: { products: Product[]; 
                         {p.stock} en stock
                       </span>
                     ) : null}
-                    {p.track_stock && p.allow_oversell ? (
+                    {p.track_stock && p.allow_oversell && (
                       <span className="rounded-full px-2 py-0.5 bg-butter-200 text-cocoa-500">Se vende sin stock</span>
-                    ) : (
+                    )}
+                    {!p.track_stock && (
                       <span className="rounded-full px-2 py-0.5 bg-cream-200">Sin control de stock</span>
                     )}
                     {margin !== null && <span>Margen {Math.round(margin * 100)}%</span>}
@@ -135,6 +140,7 @@ export function ProductsClient({ products, categories }: { products: Product[]; 
                     <Button size="sm" variant="secondary" onClick={() => setEditing(p)}>
                       <Pencil className="size-4" /> Editar
                     </Button>
+                    <FavoriteButton product={p} />
                   </div>
                 </div>
               </Card>
@@ -167,6 +173,33 @@ export function ProductsClient({ products, categories }: { products: Product[]; 
         <CategoriesManager categories={categories} />
       </Modal>
     </div>
+  );
+}
+
+function FavoriteButton({ product }: { product: Product }) {
+  const router = useRouter();
+  const [fav, setFav] = useState(product.is_favorite);
+  const [pending, start] = useTransition();
+  return (
+    <button
+      onClick={() => {
+        const next = !fav;
+        setFav(next);
+        start(async () => {
+          const res = await setFavorite(product.id, next);
+          if (!res.ok) setFav(!next);
+          else router.refresh();
+        });
+      }}
+      disabled={pending}
+      aria-label={fav ? "Quitar de favoritos" : "Agregar a favoritos"}
+      aria-pressed={fav}
+      className={`ml-auto size-9 grid place-items-center rounded-xl border-2 ${
+        fav ? "bg-corn-400 border-corn-500 text-cocoa-700" : "bg-white border-line text-cocoa-300"
+      }`}
+    >
+      <Star className="size-5" fill={fav ? "currentColor" : "none"} />
+    </button>
   );
 }
 

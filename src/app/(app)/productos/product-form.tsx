@@ -39,6 +39,7 @@ export function ProductForm({
     color: product?.color ?? "#f9bb3b",
     image_url: product?.image_url ?? null,
     active: product?.active ?? true,
+    is_favorite: product?.is_favorite ?? false,
     sort_order: product?.sort_order ?? 0,
   }));
   const [priceText, setPriceText] = useState(product ? String(product.price) : "");
@@ -244,6 +245,11 @@ export function ProductForm({
         </Field>
 
         <Toggle checked={form.active} onChange={(v) => set("active", v)} label="Visible en el punto de venta" />
+        <Toggle
+          checked={form.is_favorite}
+          onChange={(v) => set("is_favorite", v)}
+          label="⭐ Favorito (aparece en la pestaña Favoritos al vender)"
+        />
 
         {error && <Alert>{error}</Alert>}
 

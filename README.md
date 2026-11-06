@@ -2,7 +2,7 @@
 
 Punto de venta para Pop Corn Mexa, pensado para usarse en **iPad**. También funciona en celular y en computadora.
 
-- **Vender:** tocas el ícono del producto y cobras con **efectivo** (escribes cuánto te dieron y te dice el cambio) o con **tarjeta** (sólo queda registrado el método).
+- **Vender:** la pestaña **⭐ Favoritos** muestra lo que más vendes (se eligen con "Elegir favoritos" o con la estrella en Productos). Tocas el ícono del producto y cobras con **efectivo** (escribes cuánto te dieron y te dice el cambio) o con **tarjeta** (sólo queda registrado el método).
 - **Productos e inventario:** puedes agregar productos con precio, costo, stock, categoría, emoji o foto y color. También registras entradas de mercancía, mermas y conteos físicos. La app te avisa cuando el stock está bajo.
 - **Caja:** abres el turno de **mañana** o **noche** con un fondo inicial. Puedes registrar entradas y salidas de efectivo (hielo, gas, etc.). En el **corte** cuentas los billetes y la app te dice si la caja cuadra, si sobra o si falta.
 - **Ventas:** historial por día. Puedes cancelar un ticket mientras la caja de ese turno siga abierta; al cancelarlo, el stock se regresa.
@@ -15,7 +15,7 @@ Punto de venta para Pop Corn Mexa, pensado para usarse en **iPad**. También fun
 ## 1. Crear la base de datos en Supabase
 
 1. Crea un proyecto en [supabase.com](https://supabase.com).
-2. Entra a **SQL Editor** y ejecuta, en orden, el contenido de cada archivo de [`supabase/migrations/`](supabase/migrations/) (`0001_init.sql` y después `0002_allow_oversell.sql`) con **Run**.
+2. Entra a **SQL Editor** y ejecuta, en orden, el contenido de cada archivo de [`supabase/migrations/`](supabase/migrations/) (`0001_init.sql`, `0002_allow_oversell.sql` y `0003_favorites.sql`) con **Run**.
 3. (Opcional) Si quieres productos de ejemplo, pega y ejecuta [`supabase/seed.sql`](supabase/seed.sql).
 
 ## 2. Variables de entorno

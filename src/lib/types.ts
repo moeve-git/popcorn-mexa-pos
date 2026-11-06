@@ -21,6 +21,7 @@ export type Product = {
   color: string;
   image_url: string | null;
   active: boolean;
+  is_favorite: boolean;
   sort_order: number;
 };
 

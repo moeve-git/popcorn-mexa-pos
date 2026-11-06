@@ -17,6 +17,7 @@ export type ProductInput = {
   color: string;
   image_url: string | null;
   active: boolean;
+  is_favorite: boolean;
   sort_order: number;
 };
 
@@ -66,6 +67,14 @@ export async function saveProduct(id: string | null, input: ProductInput): Promi
         .insert({ product_id: data.id, quantity: input.stock, reason: "reabasto", note: "Stock inicial" });
     }
   }
+  revalidate();
+  return { ok: true, data: null };
+}
+
+export async function setFavorite(id: string, isFavorite: boolean): Promise<ActionResult> {
+  const supabase = db();
+  const { error } = await supabase.from("products").update({ is_favorite: isFavorite }).eq("id", id);
+  if (error) return { ok: false, error: error.message };
   revalidate();
   return { ok: true, data: null };
 }
