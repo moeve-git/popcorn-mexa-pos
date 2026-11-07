@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Pencil, Plus, PackagePlus, Star, Tags, Trash2 } from "lucide-react";
+import { AlertTriangle, Pencil, Plus, PackagePlus, Search, Star, Tags, Trash2, X } from "lucide-react";
 import type { Category, Product } from "@/lib/types";
 import { formatMoney } from "@/lib/format";
 import { Alert, Button, Card, Field, inputClass, Modal, PageHeader } from "@/components/ui";
@@ -14,6 +14,7 @@ type Filter = "all" | "low" | "inactive" | string;
 
 export function ProductsClient({ products, categories }: { products: Product[]; categories: Category[] }) {
   const [filter, setFilter] = useState<Filter>("all");
+  const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<Product | "new" | null>(null);
   const [stockFor, setStockFor] = useState<Product | null>(null);
   const [catsOpen, setCatsOpen] = useState(false);
@@ -26,7 +27,14 @@ export function ProductsClient({ products, categories }: { products: Product[]; 
     .filter((p) => p.active && p.track_stock)
     .reduce((s, p) => s + p.stock * Number(p.cost ?? 0), 0);
 
+  const q = normalize(query.trim());
+
   const list = products.filter((p) => {
+    // Al buscar se busca en todos los productos (también inactivos), sin importar el filtro
+    if (q) {
+      const cat = p.category_id ? (catName[p.category_id] ?? "") : "";
+      return normalize(`${p.name} ${cat}`).includes(q);
+    }
     if (filter === "all") return p.active;
     if (filter === "low") return p.active && isLow(p);
     if (filter === "inactive") return !p.active;
@@ -62,29 +70,60 @@ export function ProductsClient({ products, categories }: { products: Product[]; 
         <Stat label="Valor inventario (costo)" value={formatMoney(inventoryValue)} />
       </div>
 
-      <div className="flex gap-2 overflow-x-auto no-scrollbar mb-4 -mx-4 px-4 md:mx-0 md:px-0">
-        <FilterChip active={filter === "all"} onClick={() => setFilter("all")}>
-          Todos
-        </FilterChip>
-        <FilterChip active={filter === "fav"} onClick={() => setFilter("fav")}>
-          ⭐ Favoritos
-        </FilterChip>
-        {categories.map((c) => (
-          <FilterChip key={c.id} active={filter === c.id} onClick={() => setFilter(c.id)}>
-            {c.name}
-          </FilterChip>
-        ))}
-        <FilterChip active={filter === "low"} onClick={() => setFilter("low")}>
-          ⚠️ Stock bajo
-        </FilterChip>
-        <FilterChip active={filter === "inactive"} onClick={() => setFilter("inactive")}>
-          Inactivos
-        </FilterChip>
+      <div className="relative mb-3">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-cocoa-300" />
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Buscar producto o categoría…"
+          aria-label="Buscar producto"
+          className="w-full h-12 rounded-full border-2 border-line bg-white pl-12 pr-12 font-semibold outline-none focus:border-corn-500 [&::-webkit-search-cancel-button]:hidden"
+        />
+        {query && (
+          <button
+            onClick={() => setQuery("")}
+            className="absolute right-2 top-1/2 -translate-y-1/2 size-9 grid place-items-center rounded-full hover:bg-cream-300"
+            aria-label="Limpiar búsqueda"
+          >
+            <X className="size-5" />
+          </button>
+        )}
       </div>
+
+      {q ? (
+        <p className="mb-4 font-bold text-cocoa-400">
+          {list.length} {list.length === 1 ? "resultado" : "resultados"} para “{query.trim()}”
+        </p>
+      ) : (
+        <div className="flex gap-2 overflow-x-auto no-scrollbar mb-4 -mx-4 px-4 md:mx-0 md:px-0">
+          <FilterChip active={filter === "all"} onClick={() => setFilter("all")}>
+            Todos
+          </FilterChip>
+          <FilterChip active={filter === "fav"} onClick={() => setFilter("fav")}>
+            ⭐ Favoritos
+          </FilterChip>
+          {categories.map((c) => (
+            <FilterChip key={c.id} active={filter === c.id} onClick={() => setFilter(c.id)}>
+              {c.name}
+            </FilterChip>
+          ))}
+          <FilterChip active={filter === "low"} onClick={() => setFilter("low")}>
+            ⚠️ Stock bajo
+          </FilterChip>
+          <FilterChip active={filter === "inactive"} onClick={() => setFilter("inactive")}>
+            Inactivos
+          </FilterChip>
+        </div>
+      )}
 
       {list.length === 0 ? (
         <Card className="p-10 text-center text-cocoa-300 font-semibold">
-          {products.length === 0 ? "Agrega tu primer producto 🍿" : "Nada por aquí"}
+          {products.length === 0
+            ? "Agrega tu primer producto 🍿"
+            : q
+              ? "No encontramos productos con ese nombre"
+              : "Nada por aquí"}
         </Card>
       ) : (
         <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -101,7 +140,14 @@ export function ProductsClient({ products, categories }: { products: Product[]; 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="font-display text-lg font-semibold leading-tight truncate">{p.name}</p>
+                      <p className="font-display text-lg font-semibold leading-tight truncate">
+                        {p.name}
+                        {!p.active && (
+                          <span className="ml-2 align-middle rounded-full bg-cocoa-700 text-white px-2 py-0.5 text-[11px] font-extrabold uppercase">
+                            Inactivo
+                          </span>
+                        )}
+                      </p>
                       <p className="text-xs font-bold text-cocoa-300">
                         {p.category_id ? catName[p.category_id] : "Sin categoría"}
                       </p>
@@ -401,4 +447,9 @@ function CategoriesManager({ categories }: { categories: Category[] }) {
       </ul>
     </div>
   );
+}
+
+/** Minúsculas y sin acentos, para que "jalapeno" encuentre "jalapeño" */
+function normalize(text: string) {
+  return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
