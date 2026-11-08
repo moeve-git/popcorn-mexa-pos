@@ -89,7 +89,7 @@ export function Checkout({
             setStep("method");
             setError(null);
           }}
-          className="mb-3 inline-flex items-center gap-1 font-bold text-cocoa-400 h-9"
+          className="mb-2 sm:mb-3 inline-flex items-center gap-1 font-bold text-cocoa-400 h-8 sm:h-9 text-sm sm:text-base"
         >
           <ArrowLeft className="size-5" /> Cambiar método
         </button>
@@ -132,46 +132,57 @@ export function Checkout({
       )}
 
       {step === "efectivo" && (
-        <div className="grid sm:grid-cols-2 gap-5">
-          <div className="space-y-3">
-            <div className="rounded-2xl bg-cream-200 px-4 py-3 flex justify-between items-baseline">
+        // En celular todo es más compacto para que quepa sin hacer scroll; en iPad, a dos columnas
+        <div className="grid sm:grid-cols-2 gap-3 sm:gap-5">
+          <div className="space-y-2 sm:space-y-3">
+            <div className="rounded-2xl bg-cream-200 px-4 py-2 sm:py-3 flex justify-between items-baseline">
               <span className="font-bold text-cocoa-500">Total</span>
-              <span className="font-display text-3xl font-bold">{formatMoney(total)}</span>
+              <span className="font-display text-2xl sm:text-3xl font-bold">{formatMoney(total)}</span>
             </div>
-            <div className="rounded-2xl bg-white border-4 border-cocoa-700 px-4 py-3">
-              <span className="block font-bold text-cocoa-500 text-sm">Recibido</span>
-              <span className="block font-display text-5xl font-bold text-right tabular-nums">
-                {received ? `$${received}` : <span className="text-cocoa-300/60">$0</span>}
-              </span>
+            <div className="grid grid-cols-2 sm:grid-cols-1 gap-2 sm:gap-3">
+              <div className="rounded-2xl bg-white border-4 border-cocoa-700 px-3 py-2 sm:px-4 sm:py-3 min-w-0">
+                <span className="block font-bold text-cocoa-500 text-sm">Recibido</span>
+                <span className="block font-display text-[28px] sm:text-5xl font-bold text-right tabular-nums truncate">
+                  {received ? `$${received}` : <span className="text-cocoa-300/60">$0</span>}
+                </span>
+              </div>
+              <div
+                className={`rounded-2xl px-3 py-2 sm:px-4 sm:py-3 border-4 min-w-0 ${
+                  received && changeDue >= 0
+                    ? "bg-emerald-50 border-emerald-600 text-emerald-900"
+                    : "bg-cream-200 border-transparent text-cocoa-500"
+                }`}
+              >
+                <span className="block font-bold text-sm">
+                  {received && changeDue < 0 ? (
+                    "Falta"
+                  ) : (
+                    <>
+                      Cambio<span className="hidden sm:inline"> a entregar</span>
+                    </>
+                  )}
+                </span>
+                <span className="block font-display text-[28px] sm:text-5xl font-bold text-right tabular-nums truncate">
+                  {received ? formatMoney(Math.abs(changeDue)) : "—"}
+                </span>
+              </div>
             </div>
-            <div
-              className={`rounded-2xl px-4 py-3 border-4 ${
-                received && changeDue >= 0
-                  ? "bg-emerald-50 border-emerald-600 text-emerald-900"
-                  : "bg-cream-200 border-transparent text-cocoa-500"
-              }`}
-            >
-              <span className="block font-bold text-sm">
-                {received && changeDue < 0 ? "Falta" : "Cambio a entregar"}
-              </span>
-              <span className="block font-display text-5xl font-bold text-right tabular-nums">
-                {received ? formatMoney(Math.abs(changeDue)) : "—"}
-              </span>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-5 sm:grid-cols-3 gap-1.5 sm:gap-2">
               <button
                 onClick={() => setReceived(total.toFixed(2).replace(/\.00$/, ""))}
-                className="h-12 rounded-xl bg-cocoa-700 text-cream-100 font-display font-semibold"
+                className="h-11 sm:h-12 rounded-xl bg-cocoa-700 text-cream-100 font-display text-sm sm:text-base font-semibold"
               >
                 Exacto
               </button>
               {BILLS.filter((b) => b >= total)
                 .slice(0, 5)
-                .map((b) => (
+                .map((b, i) => (
                   <button
                     key={b}
                     onClick={() => setReceived(String(b))}
-                    className="h-12 rounded-xl bg-emerald-100 border-2 border-emerald-700/30 text-emerald-900 font-display text-lg font-semibold"
+                    className={`h-11 sm:h-12 rounded-xl bg-emerald-100 border-2 border-emerald-700/30 text-emerald-900 font-display text-sm sm:text-lg font-semibold ${
+                      i === 4 ? "max-sm:hidden" : ""
+                    }`}
                   >
                     ${b}
                   </button>
@@ -179,23 +190,23 @@ export function Checkout({
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             <div className="grid grid-cols-3 gap-2">
               {["1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0", "back"].map((k) => (
                 <button
                   key={k}
                   onClick={() => press(k)}
-                  className="h-16 rounded-2xl bg-white border-2 border-line shadow-[0_3px_0_0_#f1dcb6] active:translate-y-0.5 active:shadow-none font-display text-3xl font-semibold grid place-items-center"
+                  className="h-12 sm:h-16 rounded-xl sm:rounded-2xl bg-white border-2 border-line shadow-[0_3px_0_0_#f1dcb6] active:translate-y-0.5 active:shadow-none font-display text-2xl sm:text-3xl font-semibold grid place-items-center"
                   aria-label={k === "back" ? "Borrar" : k}
                 >
-                  {k === "back" ? <Delete className="size-7" /> : k}
+                  {k === "back" ? <Delete className="size-6 sm:size-7" /> : k}
                 </button>
               ))}
             </div>
             {error && <Alert>{error}</Alert>}
             <Button
               size="xl"
-              className="w-full"
+              className="w-full max-sm:h-14 max-sm:text-xl"
               disabled={pending || !received || changeDue < 0}
               onClick={() => pay("efectivo")}
             >
