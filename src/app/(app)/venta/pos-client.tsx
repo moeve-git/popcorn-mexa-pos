@@ -290,7 +290,7 @@ export function PosClient({
         open={checkoutOpen}
         onClose={() => setCheckoutOpen(false)}
         total={total}
-        items={lines.map((l) => ({ product_id: l.product.id, quantity: l.quantity }))}
+        items={lines}
         onSold={onSold}
       />
     </div>

@@ -1,13 +1,19 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ArrowLeft, Banknote, CheckCircle2, CreditCard, Delete } from "lucide-react";
-import type { PaymentMethod, SaleResult } from "@/lib/types";
+import { ArrowLeft, Banknote, Check, CheckCircle2, CreditCard, Delete } from "lucide-react";
+import type { PaymentMethod, Product, SaleResult } from "@/lib/types";
 import { formatMoney } from "@/lib/format";
 import { Alert, Button, Modal } from "@/components/ui";
+import { ProductVisual } from "@/components/product-tile";
 import { createSale } from "./actions";
 
 type Step = "method" | "efectivo" | "tarjeta" | "done";
+
+export type CheckoutItem = {
+  product: Pick<Product, "id" | "name" | "price" | "emoji" | "image_url" | "color">;
+  quantity: number;
+};
 
 const BILLS = [20, 50, 100, 200, 500, 1000];
 
@@ -21,13 +27,16 @@ export function Checkout({
   open: boolean;
   onClose: () => void;
   total: number;
-  items: { product_id: string; quantity: number }[];
+  items: CheckoutItem[];
   onSold: (r: SaleResult) => void;
 }) {
   const [step, setStep] = useState<Step>("method");
   const [received, setReceived] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<SaleResult | null>(null);
+  // Copia de lo vendido para mostrar "Para despachar" (el carrito se vacía al cerrar)
+  const [sold, setSold] = useState<CheckoutItem[]>([]);
+  const [delivered, setDelivered] = useState<Set<string>>(new Set());
   const [pending, start] = useTransition();
 
   const receivedNum = Number(received || 0);
@@ -38,6 +47,8 @@ export function Checkout({
     setReceived("");
     setError(null);
     setResult(null);
+    setSold([]);
+    setDelivered(new Set());
   }
 
   function close() {
@@ -50,11 +61,17 @@ export function Checkout({
   function pay(method: PaymentMethod) {
     setError(null);
     start(async () => {
-      const res = await createSale(items, method, method === "efectivo" ? receivedNum : null);
+      const snapshot = items.map((i) => ({ ...i }));
+      const res = await createSale(
+        snapshot.map((i) => ({ product_id: i.product.id, quantity: i.quantity })),
+        method,
+        method === "efectivo" ? receivedNum : null,
+      );
       if (!res.ok) {
         setError(res.error);
         return;
       }
+      setSold(snapshot);
       setResult(res.data);
       setStep("done");
     });
@@ -217,33 +234,114 @@ export function Checkout({
       )}
 
       {step === "done" && result && (
-        <div className="text-center space-y-4 py-2">
-          <CheckCircle2 className="size-16 mx-auto text-emerald-600" />
-          <p className="font-bold text-cocoa-400">
+        <div className="space-y-3 sm:space-y-4">
+          <p className="flex items-center justify-center gap-2 font-bold text-cocoa-400">
+            <CheckCircle2 className="size-7 text-emerald-600" />
             Folio #{result.folio} · {result.payment_method === "efectivo" ? "Efectivo" : "Tarjeta"}
           </p>
           {result.payment_method === "efectivo" ? (
-            <div className="rounded-3xl bg-emerald-50 border-4 border-emerald-600 p-5">
+            <div className="rounded-3xl bg-emerald-50 border-4 border-emerald-600 p-4 sm:p-5 text-center">
               <p className="font-bold text-emerald-800">Entrega de cambio</p>
-              <p className="font-display text-6xl font-bold text-emerald-900 tabular-nums">
+              <p className="font-display text-5xl sm:text-6xl font-bold text-emerald-900 tabular-nums">
                 {formatMoney(result.change)}
               </p>
-              <p className="mt-2 font-semibold text-emerald-800">
+              <p className="mt-1 sm:mt-2 text-sm sm:text-base font-semibold text-emerald-800">
                 Recibido {formatMoney(result.amount_received)} · Total {formatMoney(result.total)}
               </p>
             </div>
           ) : (
-            <div className="rounded-3xl bg-cream-200 p-5">
+            <div className="rounded-3xl bg-cream-200 p-4 sm:p-5 text-center">
               <p className="font-bold text-cocoa-500">Cobrado con tarjeta</p>
-              <p className="font-display text-5xl font-bold">{formatMoney(result.total)}</p>
+              <p className="font-display text-4xl sm:text-5xl font-bold">{formatMoney(result.total)}</p>
             </div>
           )}
-          <Button size="xl" className="w-full" onClick={close}>
+
+          {sold.length > 0 && (
+            <DispatchList
+              items={sold}
+              total={Number(result.total)}
+              delivered={delivered}
+              onToggle={(id) =>
+                setDelivered((d) => {
+                  const n = new Set(d);
+                  if (n.has(id)) n.delete(id);
+                  else n.add(id);
+                  return n;
+                })
+              }
+            />
+          )}
+
+          <Button size="xl" className="w-full max-sm:h-14 max-sm:text-xl" onClick={close}>
             Nueva venta
           </Button>
         </div>
       )}
     </Modal>
+  );
+}
+
+/** Resumen de lo que hay que entregar al cliente. Tocar un renglón lo marca como entregado. */
+function DispatchList({
+  items,
+  total,
+  delivered,
+  onToggle,
+}: {
+  items: CheckoutItem[];
+  total: number;
+  delivered: Set<string>;
+  onToggle: (id: string) => void;
+}) {
+  const pieces = items.reduce((s, i) => s + i.quantity, 0);
+  return (
+    <div className="rounded-3xl border-4 border-cocoa-700 bg-white overflow-hidden">
+      <div className="flex items-center justify-between gap-2 bg-corn-400 px-4 py-2">
+        <p className="font-display text-lg font-bold">Para despachar</p>
+        <p className="text-sm font-extrabold text-cocoa-600">
+          {pieces} {pieces === 1 ? "pieza" : "piezas"}
+        </p>
+      </div>
+      <ul className="divide-y-2 divide-line">
+        {items.map(({ product: p, quantity }) => {
+          const done = delivered.has(p.id);
+          return (
+            <li key={p.id}>
+              <button
+                onClick={() => onToggle(p.id)}
+                aria-pressed={done}
+                className={`w-full flex items-center gap-3 px-3 py-2 text-left transition ${done ? "bg-emerald-50" : ""}`}
+              >
+                <span
+                  className={`min-w-12 h-12 px-2 shrink-0 rounded-xl grid place-items-center font-display text-2xl font-bold ${
+                    done ? "bg-emerald-600 text-white" : "bg-cocoa-700 text-corn-400"
+                  }`}
+                >
+                  {done ? <Check className="size-7" strokeWidth={3} /> : `${quantity}×`}
+                </span>
+                <span
+                  className="size-11 shrink-0 rounded-xl overflow-hidden grid place-items-center"
+                  style={{ backgroundColor: `${p.color}33` }}
+                >
+                  <ProductVisual product={p} className="size-full text-2xl" />
+                </span>
+                <span className={`flex-1 min-w-0 font-display text-lg font-semibold leading-tight ${done ? "line-through text-cocoa-300" : ""}`}>
+                  {done && <span className="mr-1">{quantity}×</span>}
+                  {p.name}
+                </span>
+                <span className="shrink-0 font-bold text-cocoa-400 tabular-nums">
+                  {formatMoney(Number(p.price) * quantity)}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      <div className="flex items-center justify-between gap-2 border-t-2 border-line px-4 py-2">
+        <p className="text-xs font-bold text-cocoa-300">Toca cada producto al entregarlo</p>
+        <p className="font-display text-lg font-bold">{formatMoney(total)}</p>
+      </div>
+    </div>
   );
 }
 
